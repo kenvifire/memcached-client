@@ -28,7 +28,8 @@ public class MemcachedClient {
 
         Assert.that(client.store("test1", "111", 1, 300), "stored");
         //Assert.that(client.add("test2", "112", 1, 300), "stored");
-        Assert.that(client.replace("test2", "113", 1, 300), "stored");
+//        Assert.that(client.replace("test2", "113", 1, 300), "stored");
+        client.get("test1");
 
     }
 
@@ -143,7 +144,7 @@ public class MemcachedClient {
     }
 
 
-    public Object get(String key){
+    public Object get(String key) throws IOException,ClassNotFoundException{
         List<String> keys = new ArrayList<String>(1);
         keys.add(key);
         List<Object> result = get(keys);
@@ -153,7 +154,7 @@ public class MemcachedClient {
         return null;
     }
 
-    public List<Object> get(List<String> keys) throws IOException{
+    public List<Object> get(List<String> keys) throws IOException,ClassNotFoundException{
         StringBuilder sb = new StringBuilder("gets ");
 
         for(String key : keys){
@@ -163,13 +164,57 @@ public class MemcachedClient {
         sb.append('\n');
 
         out.write(sb.toString().getBytes());
+        String line = readLine();
+        List<Object> cachedObjList = new ArrayList<Object>();
+        while (!StringUtils.equals(line,CacheResult.END)){
+            String[] data = StringUtils.split(line,' ');
+            System.out.println(String.format("key:%s,flag:%s,bytes:%s",data[1],data[2],data[3]));
 
+            byte[] result = readBlock();
+            ObjectInputStream oi = new ObjectInputStream(new ByteArrayInputStream(result));
+            cachedObjList.add(oi.readObject());
+            line = readLine();
+        }
+
+        return cachedObjList;
 
 
     }
 
     private String readLine() throws IOException{
 
+        byte[] b = new byte[1];
+        boolean eol = false;
+
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+        while( in.read(b, 0, 1) != -1){
+            if( b[0] == 13) {
+                eol = true;
+                bos.write(b,0,1);
+                continue;
+            } else {
+                if( eol ){
+                    if( b[0] == 10) {
+                        bos.write(b,0,1);
+                        break;
+                    }
+
+                    eol = false;
+                }
+            }
+
+            bos.write(b, 0, 1);
+        }
+
+        if( bos == null || bos.size()<=0 ){
+            throw new IOException("no data read");
+        }
+
+        return bos.toString();
+    }
+
+    private byte[] readBlock() throws IOException{
         byte[] b = new byte[1];
         boolean eol = false;
 
@@ -195,15 +240,9 @@ public class MemcachedClient {
             throw new IOException("no data read");
         }
 
-        return bos.toString().trim();
-
+        return bos.toByteArray();
 
     }
-
-
-
-
-
 
 
     public boolean quit(){
