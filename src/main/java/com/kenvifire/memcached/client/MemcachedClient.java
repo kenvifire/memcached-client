@@ -153,7 +153,7 @@ public class MemcachedClient {
         return null;
     }
 
-    public List<Object> get(List<String> keys){
+    public List<Object> get(List<String> keys) throws IOException{
         StringBuilder sb = new StringBuilder("gets ");
 
         for(String key : keys){
@@ -162,10 +162,41 @@ public class MemcachedClient {
         sb.setCharAt(sb.length()-1,'\r');
         sb.append('\n');
 
-        byte[] buf = new byte[1024];
+        out.write(sb.toString().getBytes());
 
 
-        //TODO
+
+    }
+
+    private String readLine() throws IOException{
+
+        byte[] b = new byte[1];
+        boolean eol = false;
+
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+
+        while( in.read(b, 0, 1) != -1){
+            if( b[0] == 13) {
+                eol = true;
+                continue;
+            } else {
+                if( eol ){
+                    if( b[0] == 10)
+                        break;
+
+                    eol = false;
+                }
+            }
+
+            bos.write(b, 0, 1);
+        }
+
+        if( bos == null || bos.size()<=0 ){
+            throw new IOException("no data read");
+        }
+
+        return bos.toString().trim();
+
 
     }
 
