@@ -170,6 +170,7 @@ public class MemcachedClient {
             String[] data = StringUtils.split(line,' ');
             System.out.println(String.format("key:%s,flag:%s,bytes:%s",data[1],data[2],data[3]));
 
+            // read object
             byte[] result = readBlock();
             ObjectInputStream oi = new ObjectInputStream(new ByteArrayInputStream(result));
             cachedObjList.add(oi.readObject());
